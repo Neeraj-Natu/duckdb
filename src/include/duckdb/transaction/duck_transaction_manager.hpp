@@ -28,7 +28,7 @@ public:
 	//! Start a new transaction
 	Transaction &StartTransaction(ClientContext &context) override;
 	//! Commit the given transaction
-	string CommitTransaction(ClientContext &context, Transaction &transaction) override;
+	ErrorData CommitTransaction(ClientContext &context, Transaction &transaction) override;
 	//! Rollback the given transaction
 	void RollbackTransaction(Transaction &transaction) override;
 
@@ -49,7 +49,6 @@ private:
 	bool CanCheckpoint(optional_ptr<DuckTransaction> current = nullptr);
 	//! Remove the given transaction from the list of active transactions
 	void RemoveTransaction(DuckTransaction &transaction) noexcept;
-	void LockClients(vector<ClientLockWrapper> &client_locks, ClientContext &context);
 
 private:
 	//! The current start timestamp used by transactions

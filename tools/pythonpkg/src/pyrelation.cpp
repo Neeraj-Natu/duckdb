@@ -34,6 +34,15 @@ DuckDBPyRelation::DuckDBPyRelation(shared_ptr<Relation> rel_p) : rel(std::move(r
 	}
 }
 
+bool DuckDBPyRelation::CanBeRegisteredBy(Connection &con) {
+	if (!rel) {
+		// PyRelation without an internal relation can not be registered
+		return false;
+	}
+	auto context = rel->context.GetContext();
+	return context == con.context;
+}
+
 DuckDBPyRelation::DuckDBPyRelation(unique_ptr<DuckDBPyResult> result_p) : rel(nullptr), result(std::move(result_p)) {
 	if (!result) {
 		throw InternalException("DuckDBPyRelation created without a result");
@@ -735,6 +744,7 @@ unique_ptr<QueryResult> DuckDBPyRelation::ExecuteInternal(bool stream_result) {
 }
 
 void DuckDBPyRelation::ExecuteOrThrow(bool stream_result) {
+	result.reset();
 	auto query_result = ExecuteInternal(stream_result);
 	if (!query_result) {
 		throw InternalException("ExecuteOrThrow - no query available to execute");
@@ -1180,9 +1190,7 @@ unique_ptr<DuckDBPyRelation> DuckDBPyRelation::Query(const string &view_name, co
 		    make_shared<QueryRelation>(rel->context.GetContext(), std::move(select_statement), "query_relation");
 		return make_uniq<DuckDBPyRelation>(std::move(query_relation));
 	} else if (IsDescribeStatement(statement)) {
-		FunctionParameters parameters;
-		parameters.values.emplace_back(view_name);
-		auto query = PragmaShow(*rel->context.GetContext(), parameters);
+		auto query = PragmaShow(view_name);
 		return Query(view_name, query);
 	}
 	{
